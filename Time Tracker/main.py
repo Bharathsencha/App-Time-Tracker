@@ -22,6 +22,9 @@ def get_app_name_from_pid(pid):
     except Exception as e:
         return f"Error: {e}"
 
+#to check if we have opened inprivate window in firefox
+def is_firefox_private_window(window_title):
+    return "Private window" in window_title
 # Tracking active window changes and printing active window details
 def track_active_window():
     print("Tracking active window:")
@@ -33,6 +36,12 @@ def track_active_window():
             active_window_title = gw.getActiveWindow().title
             pid = get_pid_from_active_window()
             process_name = get_app_name_from_pid(pid)
+
+            if process_name.lower() == "firefox" and is_firefox_private_window(active_window):
+                print("Firefox inprivate is open")
+                last_window = None
+                time.sleep(1)
+                continue #skip this iteration 
             
             # Time spent on current active window
             current_window = (active_window_title, pid, process_name)
