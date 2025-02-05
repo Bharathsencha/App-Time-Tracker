@@ -113,9 +113,7 @@ def track_active_window():
                         minutes, seconds = divmod(remainder, 60)
                         time_str = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
                         
-                        print(f"Active Window Title: {active_window_title}")
-                        print(f"Active Process ID: {pid}")
-                        print(f"Active Application Name: {process_name}")
+
                         print(f"Application: {last_process}")
                         print(f"Time spent: {time_str}")
                         print("-----------------------------------------------------------")
