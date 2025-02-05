@@ -9,6 +9,7 @@ app_times = {}  # Dictionary to store time spent on each application (using proc
 lock = Lock()  # Lock for thread safety
 
 stop_tracking = False  # Flag to stop tracking when shortcut is pressed
+pause_tracking = False  # Flag to pause tracking when shortcut is pressed
 
 # Retrieves the Process ID (PID) of the active window
 def get_pid_from_active_window():
@@ -27,10 +28,26 @@ def get_app_name_from_pid(pid):
 
 # Function to listen for a shortcut (Ctrl + Shift + Q) to stop tracking
 def listen_for_shortcut():
-    global stop_tracking
-    keyboard.wait("ctrl+shift+q")  # Wait for shortcut press
-    stop_tracking = True
-    print("\nShortcut detected: Stopping tracking...\n")
+    global stop_tracking, pause_tracking
+    
+    def on_stop_shortcut():
+        global stop_tracking
+        stop_tracking = True
+        print("\nShortcut detected: Stopping tracking...\n")
+    
+    def on_pause_shortcut():
+        global pause_tracking
+        pause_tracking = not pause_tracking
+        status = "Paused" if pause_tracking else "Resumed"
+        print(f"\nTracking {status}!\n")
+    
+    # Register shortcuts
+    keyboard.add_hotkey('ctrl+shift+q', on_stop_shortcut)
+    keyboard.add_hotkey('p', on_pause_shortcut)
+    keyboard.add_hotkey('r', on_pause_shortcut)
+
+ # Keep the listener running
+    keyboard.wait()
 
 # Tracking active window changes and printing active window details
 def track_active_window():
@@ -42,6 +59,10 @@ def track_active_window():
 
     try:
         while not stop_tracking:
+            if pause_tracking:
+                time.sleep(1)
+                continue
+
             active_window = gw.getActiveWindow()
             if active_window:
                 active_window_title = active_window.title
@@ -91,7 +112,8 @@ def track_active_window():
 
 # Run the tracking function if executed directly
 if __name__ == "__main__":
-    print("Starting tracking...\nPress 'Ctrl + Shift + Q' to stop.\n")
+    print("Starting tracking...\nPress 'Ctrl + Shift + Q' to stop. Press 'P' to pause and 'R' to resume.\n")
+
 
     # Start keyboard listener in a separate thread
     shortcut_thread = Thread(target=listen_for_shortcut, daemon=True)
