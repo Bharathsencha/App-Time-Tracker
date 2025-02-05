@@ -62,13 +62,18 @@ def track_active_window():
                         if last_process not in app_times:
                             app_times[last_process] = 0
                         app_times[last_process] += elapsed_time
-                    print(f"Application: {last_process} spent {app_times[last_process]:.2f} seconds.")
+                    
+                    # Convert seconds to hours, minutes, seconds format
+                    hours, remainder = divmod(app_times[last_process], 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    time_str = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+                    
+                    print(f"Application: {last_process}")
+                    print(f"Time spent: {time_str}")
                     print("-----------------------------------------------------------")
 
-                # Print the new active application's details
-                print(f"Active Window Title: {active_window_title}")
-                print(f"Active Process ID: {pid}")
-                print(f"Active Application Name: {process_name}")
+                print(f"Now tracking: {active_window_title}")
+                print(f"Process: {process_name}")
                 print("-----------------------------------------------------------")
 
                 last_process = current_process
@@ -78,9 +83,11 @@ def track_active_window():
     except KeyboardInterrupt:
         pass  # Avoids error when stopping with a shortcut
 
-    print("\nFinal Application Usage Time:")
+    print("\nFinal Application Usage Summary:")
     for app, time_spent in app_times.items():
-        print(f"{app}: {time_spent:.2f} seconds")
+        hours, remainder = divmod(time_spent, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        print(f"{app}: {int(hours)}h {int(minutes)}m {int(seconds)}s")
 
 # Run the tracking function if executed directly
 if __name__ == "__main__":
