@@ -2,10 +2,13 @@ import psutil  # For process management
 import pygetwindow as gw  # For window management
 import win32gui, win32process  # Windows API for GUI and process handling
 import time  # For adding delays
-from threading import Thread, Lock  # To run both functions concurrently and ensure thread safety
+import keyboard  # For detecting keyboard shortcuts
+from threading import Thread, Lock  # To run functions concurrently and ensure thread safety
 
-app_times = {}  # Dictionary to store time spent on each application (using PID)
+app_times = {}  # Dictionary to store time spent on each application (using process name)
 lock = Lock()  # Lock for thread safety
+
+stop_tracking = False  # Flag to stop tracking when shortcut is pressed
 
 # Retrieves the Process ID (PID) of the active window
 def get_pid_from_active_window():
@@ -22,58 +25,70 @@ def get_app_name_from_pid(pid):
     except Exception as e:
         return f"Error: {e}"
 
-#to check if we have opened inprivate window in firefox
-def is_firefox_private_window(window_title):
-    return "Private window" in window_title
+# Function to listen for a shortcut (Ctrl + Shift + Q) to stop tracking
+def listen_for_shortcut():
+    global stop_tracking
+    keyboard.wait("ctrl+shift+q")  # Wait for shortcut press
+    stop_tracking = True
+    print("\nShortcut detected: Stopping tracking...\n")
+
 # Tracking active window changes and printing active window details
 def track_active_window():
-    print("Tracking active window:")
-    last_window = None  # Stores last active window info to detect changes
+    global stop_tracking
+    print("Tracking active window. Press 'Ctrl + Shift + Q' to stop.\n")
+
+    last_process = None  # Stores last active process info to detect changes
     last_time = time.time()  # Track time spent on the active window
-    
+
     try:
-        while True:
-            active_window_title = gw.getActiveWindow().title
+        while not stop_tracking:
+            active_window = gw.getActiveWindow()
+            if active_window:
+                active_window_title = active_window.title
+            else:
+                active_window_title = "Unknown Window"
+
             pid = get_pid_from_active_window()
             process_name = get_app_name_from_pid(pid)
 
-            if process_name.lower() == "firefox" and is_firefox_private_window(active_window):
-                print("Firefox inprivate is open")
-                last_window = None
-                time.sleep(1)
-                continue #skip this iteration 
-            
-            # Time spent on current active window
-            current_window = (active_window_title, pid, process_name)
+            # Time spent on the current active application
+            current_process = process_name
             current_time = time.time()
-            if current_window != last_window:
-                if last_window:
+
+            if current_process != last_process:
+                if last_process:
                     elapsed_time = current_time - last_time
                     with lock:  # Ensure thread safety
-                        if last_window[1] not in app_times:
-                            app_times[last_window[1]] = 0
-                        app_times[last_window[1]] += elapsed_time
-                    print(f"PID {last_window[1]} (Window: {last_window[0]}) spent {app_times[last_window[1]]:.2f} seconds.")
+                        if last_process not in app_times:
+                            app_times[last_process] = 0
+                        app_times[last_process] += elapsed_time
+                    print(f"Application: {last_process} spent {app_times[last_process]:.2f} seconds.")
                     print("-----------------------------------------------------------")
 
-                # Print the new active window's details (PID and window title)
+                # Print the new active application's details
                 print(f"Active Window Title: {active_window_title}")
                 print(f"Active Process ID: {pid}")
                 print(f"Active Application Name: {process_name}")
                 print("-----------------------------------------------------------")
 
-                last_window = current_window
+                last_process = current_process
                 last_time = current_time
 
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\nStopped tracking.")
+        pass  # Avoids error when stopping with a shortcut
+
+    print("\nFinal Application Usage Time:")
+    for app, time_spent in app_times.items():
+        print(f"{app}: {time_spent:.2f} seconds")
 
 # Run the tracking function if executed directly
 if __name__ == "__main__":
-    print("Starting tracking...\n")
-    
-    # Running active window tracking in a thread
-    active_window_thread = Thread(target=track_active_window)
-    active_window_thread.start()
-    active_window_thread.join()
+    print("Starting tracking...\nPress 'Ctrl + Shift + Q' to stop.\n")
+
+    # Start keyboard listener in a separate thread
+    shortcut_thread = Thread(target=listen_for_shortcut, daemon=True)
+    shortcut_thread.start()
+
+    # Start active window tracking
+    track_active_window()
