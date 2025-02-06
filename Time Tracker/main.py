@@ -61,7 +61,7 @@ def listen_for_shortcut():
 
 # Tracking active window changes and printing active window details
 def track_active_window():
-    global stop_tracking
+    global stop_tracking, pause_tracking  # Added global declaration for pause_tracking
     print("Tracking active window. Press 'Ctrl + Shift + Q' to stop.\n")
 
     last_process = None  # Stores last active process info to detect changes
@@ -140,7 +140,6 @@ def track_active_window():
 # Run the tracking function if executed directly
 if __name__ == "__main__":
     print("Starting tracking...\nPress 'Ctrl + Shift + Q' to stop. Press 'P' to pause and 'R' to resume.\n")
-
 
     # Start keyboard listener in a separate thread
     shortcut_thread = Thread(target=listen_for_shortcut, daemon=True)
