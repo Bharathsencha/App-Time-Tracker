@@ -26,6 +26,16 @@ def get_app_name_from_pid(pid):
     except Exception as e:
         return f"Error: {e}"
 
+# Checks if a window is in private browsing mode
+def is_private_browsing(window_title):
+    private_indicators = [
+        "InPrivate",  # Edge
+        "Incognito",  # Chrome
+        "Private Browsing",  # Firefox
+        "Private Window"  # Safari
+    ]
+    return any(indicator.lower() in window_title.lower() for indicator in private_indicators)
+
 # Function to listen for a shortcut (Ctrl + Shift + Q) to stop tracking
 def listen_for_shortcut():
     global stop_tracking, pause_tracking
@@ -56,6 +66,7 @@ def track_active_window():
 
     last_process = None  # Stores last active process info to detect changes
     last_time = time.time()  # Track time spent on the active window
+    private_browsing_active = False  # Track private browsing state
 
     try:
         while not stop_tracking:
@@ -68,6 +79,22 @@ def track_active_window():
                 active_window_title = active_window.title
             else:
                 active_window_title = "Unknown Window"
+
+             # Detect private browsing
+            if is_private_browsing(active_window_title):
+                if not private_browsing_active:
+                    pause_tracking = True
+                    print("\nPaused tracking due to private browsing.\n")
+                private_browsing_active = True
+            else:
+                if private_browsing_active:
+                    pause_tracking = False
+                    print("\nResumed tracking after closing private browsing.\n")
+                private_browsing_active = False
+
+            if pause_tracking:
+                time.sleep(1)
+                continue
 
             pid = get_pid_from_active_window()
             process_name = get_app_name_from_pid(pid)
