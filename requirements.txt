@@ -1,0 +1,5 @@
+PyQt6>=6.4.0
+psutil>=5.9.0
+pygetwindow>=0.0.9
+pywin32>=305
+keyboard>=0.13.5
