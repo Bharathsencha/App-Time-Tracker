@@ -329,6 +329,7 @@ class CurrentActivityCard(QFrame):
         self.current_window = ""
         self.start_time = time.time()
         self.is_tracking = True
+        self.accumulated_duration = 0  # Store accumulated duration before pause
         self.setup_ui()
         
         # Timer for updating duration
@@ -388,6 +389,7 @@ class CurrentActivityCard(QFrame):
             self.current_app = app_name
             self.current_window = window_title
             self.start_time = time.time()
+            self.accumulated_duration = 0  # Reset accumulated duration on new activity
             
             display_name = self.get_display_name(app_name)
             self.app_label.setText(display_name)
@@ -399,14 +401,21 @@ class CurrentActivityCard(QFrame):
     
     def update_duration(self):
         if self.is_tracking and self.current_app:
-            duration = time.time() - self.start_time
+            duration = self.accumulated_duration + (time.time() - self.start_time)
             self.duration_label.setText(self.format_time(duration))
     
     def set_tracking_status(self, status: str):
+        was_tracking = self.is_tracking
         self.is_tracking = status in ["active", "resumed"]
         self.status_dot.set_status("active" if self.is_tracking else "paused")
         if self.is_tracking:
-            self.start_time = time.time()
+            if not was_tracking:
+                # Resuming: set start_time to current time minus accumulated duration
+                self.start_time = time.time()
+        else:
+            if was_tracking:
+                # Pausing: accumulate elapsed duration
+                self.accumulated_duration += time.time() - self.start_time
     
     def get_display_name(self, process_name: str) -> str:
         name_map = {
