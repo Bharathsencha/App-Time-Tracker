@@ -230,57 +230,54 @@ class BackendTracker(QObject):
     def track_active_window(self):
         try:
             while not self.stop_tracking:
+                current_time = time.time()
+
                 if self.pause_tracking:
+                    self.last_time = current_time
                     time.sleep(1)
                     continue
-                
+
                 active_window = gw.getActiveWindow()
                 if active_window:
                     active_window_title = active_window.title
                 else:
                     active_window_title = "Unknown Window"
-                
+
                 if self.is_private_browsing(active_window_title):
                     if not self.private_browsing_active:
                         self.pause_tracking = True
                         self.status_changed.emit("private_browsing_detected")
-                    self.private_browsing_active = True
+                        self.private_browsing_active = True
+                        continue
                 else:
                     if self.private_browsing_active:
                         self.pause_tracking = False
                         self.status_changed.emit("private_browsing_ended")
-                    self.private_browsing_active = False
-                
-                if self.pause_tracking:
-                    time.sleep(1)
-                    continue
-                
+                        self.private_browsing_active = False
+
                 pid = self.get_pid_from_active_window()
                 if not pid:
                     time.sleep(1)
                     continue
-                
-                process_name = self.get_app_name_from_pid(pid)
-                current_process = process_name
-                current_time = time.time()
-                
-                if current_process != self.last_process:
-                    if self.last_process:
-                        elapsed_time = current_time - self.last_time
-                        with self.lock:
-                            if self.last_process not in self.app_times:
-                                self.app_times[self.last_process] = 0
-                            self.app_times[self.last_process] += elapsed_time
-                        
+
+                current_process = self.get_app_name_from_pid(pid)
+
+                if self.last_process:
+                    elapsed_time = current_time - self.last_time
+                    with self.lock:
+                        if self.last_process not in self.app_times:
+                            self.app_times[self.last_process] = 0
+                        self.app_times[self.last_process] += elapsed_time
                         self.time_updated.emit(self.app_times.copy())
-                    
-                    self.activity_changed.emit(process_name, active_window_title)
-                    
-                    self.current_app = process_name
+
+                if current_process != self.last_process:
+                    self.activity_changed.emit(current_process, active_window_title)
+                    self.current_app = current_process
                     self.current_window = active_window_title
-                    self.last_process = current_process
-                    self.last_time = current_time
-                
+
+                self.last_process = current_process
+                self.last_time = current_time
+
                 time.sleep(1)
         except Exception as e:
             print(f"Tracking error: {e}")
@@ -302,8 +299,12 @@ class BackendTracker(QObject):
     
     def stop(self):
         self.stop_tracking = True
-        # Final save before stopping
         with self.lock:
+            if self.last_process and not self.pause_tracking:
+                elapsed_time = time.time() - self.last_time
+                if self.last_process not in self.app_times:
+                    self.app_times[self.last_process] = 0
+                self.app_times[self.last_process] += elapsed_time
             self.data_manager.save_today_data(self.app_times)
 
 
