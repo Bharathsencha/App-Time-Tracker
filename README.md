@@ -81,4 +81,8 @@ Time spent: 0h 15m 22s
 App-Time-Tracker is completely free and open source. Contributions are welcome!
 
 ## License
-Open source - feel free to modify and distribute while maintaining attribution to the original project.
+
+This project is licensed under the GNU General Public License v3.0.
+
+You may freely use, modify, and distribute this software, provided that any derivative works are also licensed under the GNU GPL v3. For full license details, see the LICENSE file or visit:
+https://www.gnu.org/licenses/gpl-3.0.en.html
